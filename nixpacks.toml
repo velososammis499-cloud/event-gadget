@@ -1,0 +1,17 @@
+# Nixpacks build config for Event Gadget.
+#
+# Why pin Node 20: better-sqlite3 ships prebuilt binaries up to Node 20 (LTS).
+# Newer majors trigger a source build that needs python3 + a c++ toolchain in
+# the Railway base image, which works but doubles the install time. Pinning
+# avoids that surprise.
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-9_x", "python3"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+**/dist/
+packages/server/data/*.db
+packages/server/data/*.db.bak.*
+packages/server/data/*.db-shm
+packages/server/data/*.db-wal
+.DS_Store
+**/.DS_Store
+*.log
+.env
+.env.local
+.claude/
+# 顶层 marketing 落地页 + 早期 README zip — 保留本地,不进仓库
+/index.html
+/README.md.zip

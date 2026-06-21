@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>供应链操作系统 - SmartChain</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; display: flex; height: 100vh; overflow: hidden; }
+
+    /* 侧边栏 */
+    .sidebar { width: 220px; background: #001529; color: #fff; flex-shrink: 0; display: flex; flex-direction: column; }
+    .sidebar-logo { padding: 20px; font-size: 18px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); letter-spacing: 1px; }
+    .sidebar-logo span { color: #1890ff; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item { padding: 12px 24px; cursor: pointer; transition: all .2s; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .menu-item:hover { background: rgba(24,144,255,0.15); color: #1890ff; }
+    .menu-item.active { background: #1890ff; color: #fff; }
+    .menu-section { padding: 16px 24px 6px; font-size: 12px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* 主内容区 */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .header { background: #fff; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .breadcrumb { font-size: 14px; color: #999; }
+    .breadcrumb b { color: #333; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: #1890ff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+    .badge { position: relative; cursor: pointer; font-size: 18px; }
+    .badge-dot { position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; background: #ff4d4f; border-radius: 50%; }
+
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* 统计卡片 */
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .stat-card .label { font-size: 14px; color: #999; margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; }
+    .stat-card .trend { font-size: 12px; margin-top: 4px; }
+    .trend.up { color: #52c41a; }
+    .trend.down { color: #ff4d4f; }
+
+    /* 表格 */
+    .panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 24px; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font-size: 16px; font-weight: 600; }
+    .panel-body { padding: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #fafafa; text-align: left; padding: 12px 16px; font-size: 13px; color: #666; font-weight: 600; }
+    td { padding: 12px 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #f5f7fa; }
+
+    /* 标签 */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .tag-blue { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+    .tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+    .tag-red { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+    .tag-gray { background: #f5f5f5; color: #999; border: 1px solid #d9d9d9; }
+
+    /* 按钮 */
+    .btn { padding: 6px 16px; border-radius: 4px; border: 1px solid #d9d9d9; background: #fff; cursor: pointer; font-size: 13px; transition: all .2s; }
+    .btn:hover { border-color: #1890ff; color: #1890ff; }
+    .btn-primary { background: #1890ff; border-color: #1890ff; color: #fff; }
+    .btn-primary:hover { background: #40a9ff; }
+    .btn-danger { background: #ff4d4f; border-color: #ff4d4f; color: #fff; }
+    .btn-danger:hover { background: #ff7875; }
+    .btn-link { border: none; background: none; color: #1890ff; padding: 0; }
+    .btn-link:hover { color: #40a9ff; }
+    .btn-sm { padding: 3px 8px; font-size: 12px; }
+
+    /* 进度条 */
+    .progress-bar { height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+    /* 搜索 & 筛选 */
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; width: 240px; outline: none; }
+    .search-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+    select { padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; background: #fff; outline: none; }
+
+    /* 页面 */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* 模态框 */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: #fff; border-radius: 8px; width: 520px; max-height: 80vh; overflow-y: auto; }
+    .modal-header { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { font-size: 16px; }
+    .modal-close { cursor: pointer; font-size: 20px; color: #999; border: none; background: none; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 12px 24px; border-top: 1px solid #f0f0f0; text-align: right; display: flex; gap: 8px; justify-content: flex-end; }
+    .form-item { margin-bottom: 16px; }
+    .form-item label { display: block; font-size: 14px; color: #333; margin-bottom: 6px; }
+    .form-item input, .form-item select, .form-item textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; outline: none; }
+    .form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.2); }
+
+    /* 通知 */
+    .toast { position: fixed; top: 24px; right: 24px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 12px 20px; z-index: 2000; display: none; align-items: center; gap: 8px; font-size: 14px; }
+    .toast.show { display: flex; }
+    .toast-icon { font-size: 18px; }
+    .toast-success .toast-icon { color: #52c41a; }
+
+    /* 两栏布局 */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    /* 供应商卡片 */
+    .supplier-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; transition: all .2s; }
+    .supplier-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-2px); }
+    .supplier-card .name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .supplier-card .meta { font-size: 13px; color: #999; margin-bottom: 4px; }
+
+    /* 物流跟踪 */
+    .tracking-step { display: flex; gap: 12px; margin-bottom: 20px; align-items: flex-start; }
+    .tracking-dot { width: 12px; height: 12px; border-radius: 50%; background: #1890ff; flex-shrink: 0; margin-top: 4px; }
+    .tracking-dot.gray { background: #d9d9d9; }
+    .tracking-info .time { font-size: 12px; color: #999; }
+    .tracking-info .desc { font-size: 14px; margin-top: 2px; }
+
+    /* 快捷操作 */
+    .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .quick-action { background: #fff; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: all .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .quick-action:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-2px); }
+    .quick-action .icon { font-size: 28px; margin-bottom: 8px; }
+    .quick-action .text { font-size: 13px; color: #666; }
+  </style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="sidebar-logo"><span>Smart</span>Chain</div>
+  <div class="sidebar-menu">
+    <div class="menu-section">概览</div>
+    <div class="menu-item active" data-track="menu-dashboard" onclick="switchPage('dashboard')">📊 工作台</div>
+    <div class="menu-section">采购</div>
+    <div class="menu-item" data-track="menu-suppliers" onclick="switchPage('suppliers')">🏭 供应商管理</div>
+    <div class="menu-item" data-track="menu-orders" onclick="switchPage('orders')">📋 采购订单</div>
+    <div class="menu-item" data-track="menu-contracts" onclick="switchPage('contracts')">📄 合同管理</div>
+    <div class="menu-section">库存</div>
+    <div class="menu-item" data-track="menu-inventory" onclick="switchPage('inventory')">📦 库存管理</div>
+    <div class="menu-item" data-track="menu-warehouse" onclick="switchPage('warehouse')">🏗️ 仓库管理</div>
+    <div class="menu-section">物流</div>
+    <div class="menu-item" data-track="menu-logistics" onclick="switchPage('logistics')">🚚 物流跟踪</div>
+    <div class="menu-item" data-track="menu-delivery" onclick="switchPage('delivery')">✅ 收货确认</div>
+    <div class="menu-section">财务</div>
+    <div class="menu-item" data-track="menu-finance" onclick="switchPage('finance')">💰 对账结算</div>
+    <div class="menu-item" data-track="menu-invoice" onclick="switchPage('invoice')">🧾 发票管理</div>
+    <div class="menu-section">分析</div>
+    <div class="menu-item" data-track="menu-report" onclick="switchPage('report')">📈 数据报表</div>
+  </div>
+</div>
+
+<!-- 主区域 -->
+<div class="main">
+  <!-- 顶栏 -->
+  <div class="header">
+    <div class="header-left">
+      <div class="breadcrumb">供应链操作系统 / <b id="current-page-name">工作台</b></div>
+    </div>
+    <div class="header-right">
+      <div class="badge" data-track="header-search" onclick="showToast('搜索功能')">
+        🔍
+      </div>
+      <div class="badge" data-track="header-notification" onclick="showToast('你有3条新通知')">
+        🔔<span class="badge-dot"></span>
+      </div>
+      <div class="badge" data-track="header-message" onclick="showToast('消息中心')">
+        💬
+      </div>
+      <div class="avatar" data-track="header-profile" onclick="showToast('个人中心')">管</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ========== 工作台 ========== -->
+    <div id="page-dashboard" class="page active">
+      <div class="stat-row">
+        <div class="stat-card" data-track="stat-supplier" onclick="switchPage('suppliers')">
+          <div class="label">供应商总数</div>
+          <div class="value">128</div>
+          <div class="trend up">↑ 12% 较上月</div>
+        </div>
+        <div class="stat-card" data-track="stat-order" onclick="switchPage('orders')">
+          <div class="label">待处理订单</div>
+          <div class="value">23</div>
+          <div class="trend down">↓ 5% 较上月</div>
+        </div>
+        <div class="stat-card" data-track="stat-inventory" onclick="switchPage('inventory')">
+          <div class="label">库存预警</div>
+          <div class="value">7</div>
+          <div class="trend down">↓ 2 较昨日</div>
+        </div>
+        <div class="stat-card" data-track="stat-finance" onclick="switchPage('finance')">
+          <div class="label">待结算金额</div>
+          <div class="value">¥86.5万</div>
+          <div class="trend up">↑ 8% 较上月</div>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <div class="quick-action" data-track="quick-new-order" onclick="openModal('new-order')">
+          <div class="icon">➕</div>
+          <div class="text">新建订单</div>
+        </div>
+        <div class="quick-action" data-track="quick-approve" onclick="showToast('进入审批列表')">
+          <div class="icon">✍️</div>
+          <div class="text">审批订单</div>
+        </div>
+        <div class="quick-action" data-track="quick-replenish" onclick="showToast('智能补货建议')">
+          <div class="icon">🔄</div>
+          <div class="text">智能补货</div>
+        </div>
+        <div class="quick-action" data-track="quick-export" onclick="showToast('导出报表')">
+          <div class="icon">📤</div>
+          <div class="text">导出报表</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">最近订单</span>
+            <button class="btn btn-link" data-track="dashboard-view-all-orders" onclick="switchPage('orders')">查看全部 →</button>
+          </div>
+          <div class="panel-body">
+            <table>
+              <tr><th>订单号</th><th>供应商</th><th>金额</th><th>状态</th></tr>
+              <tr><td>PO-20260529-001</td><td>华强电子</td><td>¥128,000</td><td><span class="tag tag-orange">待审批</span></td></tr>
+              <tr><td>PO-20260528-042</td><td>鑫达钢铁</td><td>¥356,000</td><td><span class="tag tag-blue">配送中</span></td></tr>
+              <tr><td>PO-20260527-018</td><td>光明化工</td><td>¥45,000</td><td><span class="tag tag-green">已完成</span></td></tr>
+              <tr><td>PO-20260526-077</td><td>万达物流</td><td>¥89,200</td><td><span class="tag tag-red">异常</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">库存预警</span>
+            <button class="btn btn-link" data-track="dashboard-view-all-alerts" onclick="switchPage('inventory')">查看全部 →</button>
+          </div>
+          <div class="panel-body">
+            <table>
+              <tr><th>商品</th><th>当前库存</th><th>安全库存</th><th>状态</th></tr>
+              <tr><td>电阻 0805</td><td>5,000</td><td>50,000</td><td><span class="tag tag-red">紧急</span></td></tr>
+              <tr><td>环氧树脂 E-44</td><td>2吨</td><td>10吨</td><td><span class="tag tag-orange">偏低</span></td></tr>
+              <tr><td>包装纸箱 A3</td><td>200</td><td>1,000</td><td><span class="tag tag-orange">偏低</span></td></tr>
+              <tr><td>螺丝 M6x20</td><td>8,000</td><td>20,000</td><td><span class="tag tag-orange">偏低</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 供应商管理 ========== -->
+    <div id="page-suppliers" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="supplier-search" placeholder="搜索供应商名称 / 编号" />
+        <select data-track="supplier-filter-type">
+          <option value="">全部类型</option>
+          <option>元器件</option>
+          <option>原材料</option>
+          <option>化工品</option>
+          <option>包装材料</option>
+          <option>物流服务</option>
+        </select>
+        <select data-track="supplier-filter-status">
+          <option value="">全部状态</option>
+          <option>活跃</option>
+          <option>暂停</option>
+          <option>黑名单</option>
+        </select>
+        <button class="btn btn-primary" data-track="supplier-add" onclick="openModal('add-supplier')">+ 新增供应商</button>
+        <button class="btn" data-track="supplier-export" onclick="showToast('导出供应商列表')">📥 导出</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th>编号</th><th>供应商</th><th>类型</th><th>评级</th><th>合作年限</th><th>状态</th><th>操作</th></tr>
+            <tr>
+              <td>S-1001</td><td>华强电子科技</td><td>元器件</td><td>⭐⭐⭐⭐⭐</td><td>5年</td>
+              <td><span class="tag tag-green">活跃</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1001" onclick="openModal('supplier-detail')">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1001" onclick="showToast('编辑供应商')">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1001" onclick="showToast('联系供应商')">联系</button>
+              </td>
+            </tr>
+            <tr>
+              <td>S-1002</td><td>鑫达钢铁集团</td><td>原材料</td><td>⭐⭐⭐⭐</td><td>3年</td>
+              <td><span class="tag tag-green">活跃</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1002">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1002">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1002">联系</button>
+              </td>
+            </tr>
+            <tr>
+              <td>S-1003</td><td>光明化工有限公司</td><td>化工品</td><td>⭐⭐⭐</td><td>2年</td>
+              <td><span class="tag tag-orange">暂停</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1003">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1003">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1003">联系</button>
+              </td>
+            </tr>
+            <tr>
+              <td>S-1004</td><td>万达物流股份</td><td>物流服务</td><td>⭐⭐⭐⭐</td><td>4年</td>
+              <td><span class="tag tag-green">活跃</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1004">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1004">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1004">联系</button>
+              </td>
+            </tr>
+            <tr>
+              <td>S-1005</td><td>绿源包装材料</td><td>包装材料</td><td>⭐⭐⭐⭐⭐</td><td>6年</td>
+              <td><span class="tag tag-green">活跃</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1005">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1005">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1005">联系</button>
+              </td>
+            </tr>
+            <tr>
+              <td>S-1006</td><td>瑞丰五金制品</td><td>原材料</td><td>⭐⭐</td><td>1年</td>
+              <td><span class="tag tag-red">黑名单</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="supplier-view-1006">查看</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-edit-1006">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="supplier-contact-1006">联系</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 采购订单 ========== -->
+    <div id="page-orders" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="order-search" placeholder="搜索订单号 / 供应商" />
+        <select data-track="order-filter-status">
+          <option value="">全部状态</option>
+          <option>草稿</option>
+          <option>待审批</option>
+          <option>已审批</option>
+          <option>配送中</option>
+          <option>已收货</option>
+          <option>已完成</option>
+          <option>异常</option>
+        </select>
+        <select data-track="order-filter-date">
+          <option value="">全部时间</option>
+          <option>今天</option>
+          <option>本周</option>
+          <option>本月</option>
+          <option>本季度</option>
+        </select>
+        <button class="btn btn-primary" data-track="order-create" onclick="openModal('new-order')">+ 新建订单</button>
+        <button class="btn" data-track="order-batch-approve" onclick="showToast('批量审批')">批量审批</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th><input type="checkbox" data-track="order-select-all" /></th><th>订单号</th><th>供应商</th><th>商品</th><th>数量</th><th>金额</th><th>交期</th><th>状态</th><th>操作</th></tr>
+            <tr>
+              <td><input type="checkbox" data-track="order-select-1" /></td>
+              <td>PO-20260529-001</td><td>华强电子</td><td>电阻0805</td><td>500K</td><td>¥128,000</td><td>06-05</td>
+              <td><span class="tag tag-orange">待审批</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="order-approve-1" onclick="showToast('订单已审批')">审批</button>
+                <button class="btn btn-link btn-sm" data-track="order-detail-1">详情</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" data-track="order-select-2" /></td>
+              <td>PO-20260528-042</td><td>鑫达钢铁</td><td>冷轧钢板</td><td>50吨</td><td>¥356,000</td><td>06-08</td>
+              <td><span class="tag tag-blue">配送中</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="order-track-2" onclick="switchPage('logistics')">跟踪</button>
+                <button class="btn btn-link btn-sm" data-track="order-detail-2">详情</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" data-track="order-select-3" /></td>
+              <td>PO-20260527-018</td><td>光明化工</td><td>环氧树脂</td><td>10吨</td><td>¥45,000</td><td>05-30</td>
+              <td><span class="tag tag-green">已完成</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="order-detail-3">详情</button>
+                <button class="btn btn-link btn-sm" data-track="order-settle-3" onclick="switchPage('finance')">结算</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" data-track="order-select-4" /></td>
+              <td>PO-20260526-077</td><td>万达物流</td><td>包装纸箱</td><td>20K</td><td>¥89,200</td><td>06-01</td>
+              <td><span class="tag tag-red">异常</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="order-handle-4" onclick="showToast('处理异常')">处理</button>
+                <button class="btn btn-link btn-sm" data-track="order-detail-4">详情</button>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" data-track="order-select-5" /></td>
+              <td>PO-20260525-093</td><td>绿源包装</td><td>气泡膜</td><td>5K卷</td><td>¥12,500</td><td>06-10</td>
+              <td><span class="tag tag-gray">草稿</span></td>
+              <td>
+                <button class="btn btn-link btn-sm" data-track="order-edit-5">编辑</button>
+                <button class="btn btn-link btn-sm" data-track="order-submit-5" onclick="showToast('订单已提交')">提交</button>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 合同管理 ========== -->
+    <div id="page-contracts" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="contract-search" placeholder="搜索合同编号 / 名称" />
+        <select data-track="contract-filter-status">
+          <option value="">全部状态</option>
+          <option>生效中</option>
+          <option>待签署</option>
+          <option>即将到期</option>
+          <option>已过期</option>
+        </select>
+        <button class="btn btn-primary" data-track="contract-create" onclick="openModal('new-contract')">+ 新建合同</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th>合同编号</th><th>合同名称</th><th>供应商</th><th>有效期</th><th>金额</th><th>状态</th><th>操作</th></tr>
+            <tr><td>CT-2026-001</td><td>年度元器件采购框架协议</td><td>华强电子</td><td>2026-01至2026-12</td><td>¥500万</td><td><span class="tag tag-green">生效中</span></td><td><button class="btn btn-link btn-sm" data-track="contract-view-1">查看</button></td></tr>
+            <tr><td>CT-2026-002</td><td>钢材季度采购协议</td><td>鑫达钢铁</td><td>2026-04至2026-06</td><td>¥200万</td><td><span class="tag tag-orange">即将到期</span></td><td><button class="btn btn-link btn-sm" data-track="contract-view-2">查看</button> <button class="btn btn-link btn-sm" data-track="contract-renew-2" onclick="showToast('续签合同')">续签</button></td></tr>
+            <tr><td>CT-2026-003</td><td>化工品供货合同</td><td>光明化工</td><td>2026-03至2026-09</td><td>¥80万</td><td><span class="tag tag-blue">待签署</span></td><td><button class="btn btn-link btn-sm" data-track="contract-view-3">查看</button> <button class="btn btn-link btn-sm" data-track="contract-sign-3" onclick="showToast('签署合同')">签署</button></td></tr>
+            <tr><td>CT-2025-015</td><td>五金件采购合同</td><td>瑞丰五金</td><td>2025-01至2025-12</td><td>¥45万</td><td><span class="tag tag-red">已过期</span></td><td><button class="btn btn-link btn-sm" data-track="contract-view-4">查看</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 库存管理 ========== -->
+    <div id="page-inventory" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="inventory-search" placeholder="搜索商品名称 / SKU" />
+        <select data-track="inventory-filter-category">
+          <option value="">全部分类</option>
+          <option>元器件</option>
+          <option>原材料</option>
+          <option>化工品</option>
+          <option>包装材料</option>
+          <option>五金件</option>
+        </select>
+        <select data-track="inventory-filter-alert">
+          <option value="">全部库存</option>
+          <option>仅看预警</option>
+          <option>仅看充足</option>
+        </select>
+        <button class="btn btn-primary" data-track="inventory-inbound" onclick="openModal('inbound')">+ 入库</button>
+        <button class="btn" data-track="inventory-outbound" onclick="openModal('outbound')">出库</button>
+        <button class="btn" data-track="inventory-stocktake" onclick="showToast('发起盘点')">📊 盘点</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="label">SKU 总数</div><div class="value">1,256</div></div>
+        <div class="stat-card"><div class="label">库存总值</div><div class="value">¥2,350万</div></div>
+        <div class="stat-card"><div class="label">预警商品</div><div class="value" style="color:#ff4d4f">7</div></div>
+        <div class="stat-card"><div class="label">本月出入库</div><div class="value">328次</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th>SKU</th><th>商品名称</th><th>分类</th><th>当前库存</th><th>安全库存</th><th>库存状态</th><th>仓库</th><th>操作</th></tr>
+            <tr><td>SKU-001</td><td>电阻 0805</td><td>元器件</td><td>5,000</td><td>50,000</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:10%;background:#ff4d4f"></div></div></td>
+              <td>华东仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-replenish-001" onclick="showToast('发起补货')">补货</button> <button class="btn btn-link btn-sm" data-track="inv-history-001">记录</button></td>
+            </tr>
+            <tr><td>SKU-002</td><td>冷轧钢板 1.5mm</td><td>原材料</td><td>80吨</td><td>30吨</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:100%;background:#52c41a"></div></div></td>
+              <td>华北仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-history-002">记录</button></td>
+            </tr>
+            <tr><td>SKU-003</td><td>环氧树脂 E-44</td><td>化工品</td><td>2吨</td><td>10吨</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:20%;background:#fa8c16"></div></div></td>
+              <td>华东仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-replenish-003" onclick="showToast('发起补货')">补货</button> <button class="btn btn-link btn-sm" data-track="inv-history-003">记录</button></td>
+            </tr>
+            <tr><td>SKU-004</td><td>包装纸箱 A3</td><td>包装材料</td><td>200</td><td>1,000</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:20%;background:#fa8c16"></div></div></td>
+              <td>华南仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-replenish-004" onclick="showToast('发起补货')">补货</button> <button class="btn btn-link btn-sm" data-track="inv-history-004">记录</button></td>
+            </tr>
+            <tr><td>SKU-005</td><td>螺丝 M6x20</td><td>五金件</td><td>8,000</td><td>20,000</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:40%;background:#fa8c16"></div></div></td>
+              <td>华北仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-replenish-005" onclick="showToast('发起补货')">补货</button> <button class="btn btn-link btn-sm" data-track="inv-history-005">记录</button></td>
+            </tr>
+            <tr><td>SKU-006</td><td>电容 100μF</td><td>元器件</td><td>120,000</td><td>30,000</td>
+              <td><div class="progress-bar"><div class="progress-fill" style="width:100%;background:#52c41a"></div></div></td>
+              <td>华东仓</td>
+              <td><button class="btn btn-link btn-sm" data-track="inv-history-006">记录</button></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 仓库管理 ========== -->
+    <div id="page-warehouse" class="page">
+      <div class="three-col">
+        <div class="supplier-card" data-track="warehouse-huadong" onclick="showToast('华东仓库详情')">
+          <div class="name">📦 华东仓库</div>
+          <div class="meta">位置：上海松江 | 面积：12,000m²</div>
+          <div class="meta">利用率：<span style="color:#fa8c16">85%</span></div>
+          <div style="margin-top:8px"><div class="progress-bar"><div class="progress-fill" style="width:85%;background:#fa8c16"></div></div></div>
+        </div>
+        <div class="supplier-card" data-track="warehouse-huabei" onclick="showToast('华北仓库详情')">
+          <div class="name">📦 华北仓库</div>
+          <div class="meta">位置：北京大兴 | 面积：8,000m²</div>
+          <div class="meta">利用率：<span style="color:#52c41a">62%</span></div>
+          <div style="margin-top:8px"><div class="progress-bar"><div class="progress-fill" style="width:62%;background:#52c41a"></div></div></div>
+        </div>
+        <div class="supplier-card" data-track="warehouse-huanan" onclick="showToast('华南仓库详情')">
+          <div class="name">📦 华南仓库</div>
+          <div class="meta">位置：深圳宝安 | 面积：6,500m²</div>
+          <div class="meta">利用率：<span style="color:#ff4d4f">92%</span></div>
+          <div style="margin-top:8px"><div class="progress-bar"><div class="progress-fill" style="width:92%;background:#ff4d4f"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 物流跟踪 ========== -->
+    <div id="page-logistics" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="logistics-search" placeholder="输入运单号 / 订单号查询" />
+        <button class="btn btn-primary" data-track="logistics-query" onclick="showToast('查询物流')">查询</button>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">运单 WH-20260528-001</span><span class="tag tag-blue">运输中</span></div>
+          <div class="panel-body" style="padding:20px">
+            <div class="tracking-step">
+              <div class="tracking-dot"></div>
+              <div class="tracking-info"><div class="time">05-28 09:00</div><div class="desc">已从华强电子仓库发货</div></div>
+            </div>
+            <div class="tracking-step">
+              <div class="tracking-dot"></div>
+              <div class="tracking-info"><div class="time">05-28 14:30</div><div class="desc">到达深圳中转站</div></div>
+            </div>
+            <div class="tracking-step">
+              <div class="tracking-dot"></div>
+              <div class="tracking-info"><div class="time">05-29 06:00</div><div class="desc">已从深圳中转站发出</div></div>
+            </div>
+            <div class="tracking-step">
+              <div class="tracking-dot gray"></div>
+              <div class="tracking-info"><div class="time">预计 05-30</div><div class="desc">到达华东仓库</div></div>
+            </div>
+            <div class="tracking-step">
+              <div class="tracking-dot gray"></div>
+              <div class="tracking-info"><div class="desc">签收确认</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">运输中的订单</span></div>
+          <div class="panel-body">
+            <table>
+              <tr><th>运单号</th><th>供应商</th><th>状态</th><th>操作</th></tr>
+              <tr><td>WH-20260528-001</td><td>华强电子</td><td><span class="tag tag-blue">运输中</span></td><td><button class="btn btn-link btn-sm" data-track="logistics-detail-1">跟踪</button></td></tr>
+              <tr><td>WH-20260527-015</td><td>鑫达钢铁</td><td><span class="tag tag-orange">中转</span></td><td><button class="btn btn-link btn-sm" data-track="logistics-detail-2">跟踪</button></td></tr>
+              <tr><td>WH-20260526-008</td><td>绿源包装</td><td><span class="tag tag-green">派送中</span></td><td><button class="btn btn-link btn-sm" data-track="logistics-detail-3">跟踪</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 收货确认 ========== -->
+    <div id="page-delivery" class="page">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">待确认收货</span><button class="btn btn-primary" data-track="delivery-batch-confirm" onclick="showToast('批量确认收货')">批量确认</button></div>
+        <div class="panel-body">
+          <table>
+            <tr><th><input type="checkbox" data-track="delivery-select-all" /></th><th>订单号</th><th>运单号</th><th>供应商</th><th>到货时间</th><th>状态</th><th>操作</th></tr>
+            <tr>
+              <td><input type="checkbox" data-track="delivery-select-1" /></td>
+              <td>PO-20260528-042</td><td>WH-20260527-015</td><td>鑫达钢铁</td><td>05-29 10:30</td>
+              <td><span class="tag tag-blue">待验收</span></td>
+              <td><button class="btn btn-primary btn-sm" data-track="delivery-confirm-1" onclick="showToast('已确认收货')">确认收货</button> <button class="btn btn-link btn-sm" data-track="delivery-reject-1" onclick="showToast('拒收')">拒收</button></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" data-track="delivery-select-2" /></td>
+              <td>PO-20260525-093</td><td>WH-20260526-008</td><td>绿源包装</td><td>05-29 14:00</td>
+              <td><span class="tag tag-blue">待验收</span></td>
+              <td><button class="btn btn-primary btn-sm" data-track="delivery-confirm-2" onclick="showToast('已确认收货')">确认收货</button> <button class="btn btn-link btn-sm" data-track="delivery-reject-2" onclick="showToast('拒收')">拒收</button></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">已收货记录</span></div>
+        <div class="panel-body">
+          <table>
+            <tr><th>订单号</th><th>供应商</th><th>收货时间</th><th>验收结果</th><th>操作</th></tr>
+            <tr><td>PO-20260527-018</td><td>光明化工</td><td>05-28 16:00</td><td><span class="tag tag-green">合格</span></td><td><button class="btn btn-link btn-sm" data-track="delivery-detail-1">详情</button></td></tr>
+            <tr><td>PO-20260520-055</td><td>华强电子</td><td>05-22 09:30</td><td><span class="tag tag-green">合格</span></td><td><button class="btn btn-link btn-sm" data-track="delivery-detail-2">详情</button></td></tr>
+            <tr><td>PO-20260518-032</td><td>瑞丰五金</td><td>05-19 11:00</td><td><span class="tag tag-red">不合格</span></td><td><button class="btn btn-link btn-sm" data-track="delivery-detail-3">详情</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 对账结算 ========== -->
+    <div id="page-finance" class="page">
+      <div class="stat-row">
+        <div class="stat-card"><div class="label">本月应付</div><div class="value">¥186万</div></div>
+        <div class="stat-card"><div class="label">已结算</div><div class="value" style="color:#52c41a">¥99.5万</div></div>
+        <div class="stat-card"><div class="label">待结算</div><div class="value" style="color:#fa8c16">¥86.5万</div></div>
+        <div class="stat-card"><div class="label">逾期未付</div><div class="value" style="color:#ff4d4f">¥12.3万</div></div>
+      </div>
+
+      <div class="toolbar">
+        <select data-track="finance-filter-status">
+          <option value="">全部状态</option>
+          <option>待对账</option>
+          <option>待结算</option>
+          <option>已结算</option>
+          <option>逾期</option>
+        </select>
+        <button class="btn btn-primary" data-track="finance-reconcile" onclick="showToast('发起对账')">发起对账</button>
+        <button class="btn" data-track="finance-export" onclick="showToast('导出结算单')">📥 导出结算单</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th>结算单号</th><th>供应商</th><th>对账周期</th><th>金额</th><th>状态</th><th>操作</th></tr>
+            <tr><td>ST-202605-001</td><td>华强电子</td><td>05-01至05-31</td><td>¥128,000</td><td><span class="tag tag-orange">待对账</span></td><td><button class="btn btn-link btn-sm" data-track="finance-reconcile-1" onclick="showToast('开始对账')">对账</button></td></tr>
+            <tr><td>ST-202605-002</td><td>鑫达钢铁</td><td>05-01至05-31</td><td>¥356,000</td><td><span class="tag tag-blue">待结算</span></td><td><button class="btn btn-link btn-sm" data-track="finance-pay-2" onclick="showToast('发起付款')">付款</button></td></tr>
+            <tr><td>ST-202604-003</td><td>光明化工</td><td>04-01至04-30</td><td>¥45,000</td><td><span class="tag tag-green">已结算</span></td><td><button class="btn btn-link btn-sm" data-track="finance-detail-3">详情</button></td></tr>
+            <tr><td>ST-202604-004</td><td>瑞丰五金</td><td>04-01至04-30</td><td>¥123,000</td><td><span class="tag tag-red">逾期</span></td><td><button class="btn btn-link btn-sm" data-track="finance-pay-4" onclick="showToast('发起付款')">付款</button> <button class="btn btn-link btn-sm" data-track="finance-detail-4">详情</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 发票管理 ========== -->
+    <div id="page-invoice" class="page">
+      <div class="toolbar">
+        <input class="search-input" data-track="invoice-search" placeholder="搜索发票号 / 供应商" />
+        <button class="btn btn-primary" data-track="invoice-upload" onclick="showToast('上传发票')">📤 上传发票</button>
+        <button class="btn" data-track="invoice-verify" onclick="showToast('批量验真')">✅ 批量验真</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <table>
+            <tr><th>发票号</th><th>供应商</th><th>金额</th><th>类型</th><th>开具日期</th><th>验真状态</th><th>操作</th></tr>
+            <tr><td>INV-20260529-001</td><td>华强电子</td><td>¥128,000</td><td>增值税专用</td><td>05-29</td><td><span class="tag tag-green">已验证</span></td><td><button class="btn btn-link btn-sm" data-track="invoice-view-1">查看</button></td></tr>
+            <tr><td>INV-20260528-002</td><td>鑫达钢铁</td><td>¥356,000</td><td>增值税专用</td><td>05-28</td><td><span class="tag tag-orange">待验证</span></td><td><button class="btn btn-link btn-sm" data-track="invoice-verify-2" onclick="showToast('验证发票')">验真</button></td></tr>
+            <tr><td>INV-20260527-003</td><td>光明化工</td><td>¥45,000</td><td>增值税普通</td><td>05-27</td><td><span class="tag tag-green">已验证</span></td><td><button class="btn btn-link btn-sm" data-track="invoice-view-3">查看</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 数据报表 ========== -->
+    <div id="page-report" class="page">
+      <div class="toolbar">
+        <select data-track="report-type">
+          <option>采购分析</option>
+          <option>供应商绩效</option>
+          <option>库存周转</option>
+          <option>成本趋势</option>
+          <option>交付准时率</option>
+        </select>
+        <select data-track="report-period">
+          <option>本月</option>
+          <option>本季度</option>
+          <option>本年度</option>
+          <option>自定义</option>
+        </select>
+        <button class="btn btn-primary" data-track="report-generate" onclick="showToast('生成报表')">生成报表</button>
+        <button class="btn" data-track="report-export-pdf" onclick="showToast('导出PDF')">📄 导出PDF</button>
+        <button class="btn" data-track="report-export-excel" onclick="showToast('导出Excel')">📊 导出Excel</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="label">采购总额</div><div class="value">¥1,280万</div><div class="trend up">↑ 15% 环比</div></div>
+        <div class="stat-card"><div class="label">平均交付周期</div><div class="value">4.2天</div><div class="trend up">↑ 改善0.5天</div></div>
+        <div class="stat-card"><div class="label">准时交付率</div><div class="value">94.5%</div><div class="trend down">↓ 1.2% 环比</div></div>
+        <div class="stat-card"><div class="label">质量合格率</div><div class="value">98.3%</div><div class="trend up">↑ 0.5% 环比</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">供应商采购占比 (TOP 5)</span></div>
+          <div class="panel-body" style="padding:20px">
+            <div style="margin-bottom:12px">华强电子 <div class="progress-bar" style="display:inline-block;width:200px;vertical-align:middle;margin:0 8px"><div class="progress-fill" style="width:38%;background:#1890ff"></div></div> 38%</div>
+            <div style="margin-bottom:12px">鑫达钢铁 <div class="progress-bar" style="display:inline-block;width:200px;vertical-align:middle;margin:0 8px"><div class="progress-fill" style="width:28%;background:#52c41a"></div></div> 28%</div>
+            <div style="margin-bottom:12px">光明化工 <div class="progress-bar" style="display:inline-block;width:200px;vertical-align:middle;margin:0 8px"><div class="progress-fill" style="width:18%;background:#fa8c16"></div></div> 18%</div>
+            <div style="margin-bottom:12px">万达物流 <div class="progress-bar" style="display:inline-block;width:200px;vertical-align:middle;margin:0 8px"><div class="progress-fill" style="width:10%;background:#722ed1"></div></div> 10%</div>
+            <div>绿源包装 <div class="progress-bar" style="display:inline-block;width:200px;vertical-align:middle;margin:0 8px"><div class="progress-fill" style="width:6%;background:#eb2f96"></div></div> 6%</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">供应商绩效排名</span></div>
+          <div class="panel-body">
+            <table>
+              <tr><th>排名</th><th>供应商</th><th>综合得分</th><th>交付</th><th>质量</th><th>价格</th></tr>
+              <tr><td>1</td><td>华强电子</td><td>95.2</td><td>98</td><td>96</td><td>92</td></tr>
+              <tr><td>2</td><td>绿源包装</td><td>93.8</td><td>95</td><td>97</td><td>90</td></tr>
+              <tr><td>3</td><td>鑫达钢铁</td><td>88.5</td><td>90</td><td>92</td><td>84</td></tr>
+              <tr><td>4</td><td>万达物流</td><td>82.1</td><td>88</td><td>80</td><td>78</td></tr>
+              <tr><td>5</td><td>光明化工</td><td>75.3</td><td>82</td><td>78</td><td>66</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 模态框：新建订单 -->
+<div class="modal-overlay" id="modal-new-order">
+  <div class="modal">
+    <div class="modal-header"><h3>新建采购订单</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-item"><label>供应商</label><select data-track="modal-order-supplier"><option>请选择供应商</option><option>华强电子</option><option>鑫达钢铁</option><option>光明化工</option><option>万达物流</option><option>绿源包装</option></select></div>
+      <div class="form-item"><label>商品名称</label><input data-track="modal-order-product" placeholder="输入商品名称" /></div>
+      <div class="form-item"><label>数量</label><input data-track="modal-order-quantity" type="number" placeholder="输入采购数量" /></div>
+      <div class="form-item"><label>单价 (元)</label><input data-track="modal-order-price" type="number" placeholder="输入单价" /></div>
+      <div class="form-item"><label>期望交期</label><input data-track="modal-order-delivery" type="date" /></div>
+      <div class="form-item"><label>备注</label><textarea data-track="modal-order-remark" rows="3" placeholder="订单备注信息"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-track="modal-order-cancel" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" data-track="modal-order-save-draft" onclick="showToast('已保存草稿');closeModal()">保存草稿</button>
+      <button class="btn btn-primary" data-track="modal-order-submit" onclick="showToast('订单已提交审批');closeModal()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：新增供应商 -->
+<div class="modal-overlay" id="modal-add-supplier">
+  <div class="modal">
+    <div class="modal-header"><h3>新增供应商</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-item"><label>供应商名称</label><input data-track="modal-supplier-name" placeholder="输入供应商全称" /></div>
+      <div class="form-item"><label>类型</label><select data-track="modal-supplier-type"><option>元器件</option><option>原材料</option><option>化工品</option><option>包装材料</option><option>物流服务</option></select></div>
+      <div class="form-item"><label>联系人</label><input data-track="modal-supplier-contact" placeholder="联系人姓名" /></div>
+      <div class="form-item"><label>联系电话</label><input data-track="modal-supplier-phone" placeholder="联系电话" /></div>
+      <div class="form-item"><label>地址</label><input data-track="modal-supplier-address" placeholder="公司地址" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" data-track="modal-supplier-save" onclick="showToast('供应商已创建');closeModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：供应商详情 -->
+<div class="modal-overlay" id="modal-supplier-detail">
+  <div class="modal">
+    <div class="modal-header"><h3>供应商详情 - 华强电子科技</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <p><b>编号：</b>S-1001</p>
+      <p><b>类型：</b>元器件</p>
+      <p><b>联系人：</b>张经理</p>
+      <p><b>电话：</b>0755-8300-XXXX</p>
+      <p><b>地址：</b>深圳市福田区华强北路XX号</p>
+      <p><b>评级：</b>⭐⭐⭐⭐⭐</p>
+      <p><b>合作年限：</b>5年</p>
+      <p><b>累计采购额：</b>¥1,920万</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-track="modal-supplier-back" onclick="closeModal()">关闭</button>
+      <button class="btn" data-track="modal-supplier-edit" onclick="showToast('编辑供应商')">编辑</button>
+      <button class="btn btn-primary" data-track="modal-supplier-order" onclick="showToast('新建采购订单');closeModal()">下单</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：入库 -->
+<div class="modal-overlay" id="modal-inbound">
+  <div class="modal">
+    <div class="modal-header"><h3>入库登记</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-item"><label>关联订单号</label><input data-track="modal-inbound-order" placeholder="输入采购订单号" /></div>
+      <div class="form-item"><label>商品SKU</label><input data-track="modal-inbound-sku" placeholder="输入或扫描SKU" /></div>
+      <div class="form-item"><label>入库数量</label><input data-track="modal-inbound-qty" type="number" placeholder="入库数量" /></div>
+      <div class="form-item"><label>目标仓库</label><select data-track="modal-inbound-warehouse"><option>华东仓库</option><option>华北仓库</option><option>华南仓库</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" data-track="modal-inbound-confirm" onclick="showToast('入库登记成功');closeModal()">确认入库</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：出库 -->
+<div class="modal-overlay" id="modal-outbound">
+  <div class="modal">
+    <div class="modal-header"><h3>出库登记</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-item"><label>商品SKU</label><input data-track="modal-outbound-sku" placeholder="输入或扫描SKU" /></div>
+      <div class="form-item"><label>出库数量</label><input data-track="modal-outbound-qty" type="number" placeholder="出库数量" /></div>
+      <div class="form-item"><label>出库原因</label><select data-track="modal-outbound-reason"><option>生产领料</option><option>退货</option><option>调拨</option><option>报损</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" data-track="modal-outbound-confirm" onclick="showToast('出库登记成功');closeModal()">确认出库</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：新建合同 -->
+<div class="modal-overlay" id="modal-new-contract">
+  <div class="modal">
+    <div class="modal-header"><h3>新建合同</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-item"><label>合同名称</label><input data-track="modal-contract-name" placeholder="输入合同名称" /></div>
+      <div class="form-item"><label>供应商</label><select data-track="modal-contract-supplier"><option>请选择供应商</option><option>华强电子</option><option>鑫达钢铁</option><option>光明化工</option></select></div>
+      <div class="form-item"><label>合同金额</label><input data-track="modal-contract-amount" type="number" placeholder="合同总金额" /></div>
+      <div class="form-item"><label>生效日期</label><input data-track="modal-contract-start" type="date" /></div>
+      <div class="form-item"><label>到期日期</label><input data-track="modal-contract-end" type="date" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" data-track="modal-contract-save" onclick="showToast('合同已创建');closeModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 通知 -->
+<div class="toast toast-success" id="toast"><span class="toast-icon">✅</span><span id="toast-msg"></span></div>
+
+<script>
+  const pageNames = {
+    dashboard: '工作台',
+    suppliers: '供应商管理',
+    orders: '采购订单',
+    contracts: '合同管理',
+    inventory: '库存管理',
+    warehouse: '仓库管理',
+    logistics: '物流跟踪',
+    delivery: '收货确认',
+    finance: '对账结算',
+    invoice: '发票管理',
+    report: '数据报表'
+  };
+
+  function switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page)?.classList.add('active');
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+    document.querySelector(`.menu-item[data-track="menu-${page}"]`)?.classList.add('active');
+    document.getElementById('current-page-name').textContent = pageNames[page] || page;
+  }
+
+  function openModal(name) {
+    const modal = document.getElementById('modal-' + name);
+    if (modal) modal.classList.add('show');
+  }
+
+  function closeModal() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  document.querySelector('.modal-overlay')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+
+<script src="/sg.js" data-app-id="ceshi" data-debug="true"></script>
+</body>
+</html>

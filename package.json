@@ -1,0 +1,24 @@
+{
+  "name": "event-gadget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "自动埋点 + 智能分析工具",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:tracker": "cd packages/tracker && npm run build",
+    "build:dashboard": "cd packages/dashboard && npm run build",
+    "build:server": "cd packages/server && npm run build",
+    "build": "npm run build:tracker && npm run build:dashboard && npm run build:server",
+    "dev:server": "cd packages/server && npm run dev",
+    "dev:dashboard": "cd packages/dashboard && npm run dev",
+    "dev": "concurrently --names server,dashboard --prefix-colors cyan,magenta \"npm run dev:server\" \"npm run dev:dashboard\"",
+    "setup": "npm install && npm run build:tracker && cd packages/server && npm run setup",
+    "start": "cd packages/server && node dist/index.js"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.0",
+    "playwright": "^1.60.0"
+  }
+}

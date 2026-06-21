@@ -1,0 +1,172 @@
+:root {
+  --bg-primary: #0a0f1e;
+  --bg-secondary: #0d1529;
+  --bg-card: #111827;
+  --accent: #00f0ff;
+  --accent-dim: rgba(0, 240, 255, 0.5);
+  --purple: #7b2fff;
+  --text-primary: #e0e0e0;
+  --text-secondary: #8a8fa8;
+  --text-muted: #4a5068;
+  --success: #00ff88;
+  --warning: #ffb800;
+  --danger: #ff3366;
+  --border: rgba(0, 240, 255, 0.15);
+  --border-hover: rgba(0, 240, 255, 0.35);
+  --glow: 0 0 20px rgba(0, 240, 255, 0.08);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.2);
+  border-radius: 3px;
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.3);
+  color: #fff;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ===== @property for rotating gradient border ===== */
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* ===== Keyframes ===== */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.25); }
+}
+
+@keyframes dash-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes fade-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradient-rotate {
+  to { --gradient-angle: 360deg; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glitch-in {
+  0% { opacity: 0; transform: translateX(-4px); }
+  25% { opacity: 0.6; transform: translateX(3px); }
+  50% { opacity: 0.8; transform: translateX(-1px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 240, 255, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.4); }
+}
+
+/* ===== Utility classes ===== */
+.glow-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8;
+  animation: pulse-glow 3s ease-in-out infinite;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.glow-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+}
+
+.gradient-border {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  padding: 1px;
+  background: conic-gradient(from var(--gradient-angle), var(--accent), var(--purple), var(--accent));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: gradient-rotate 4s linear infinite;
+  pointer-events: none;
+}
+
+.animated-in {
+  animation: fade-slide-up 0.4s ease-out both;
+}
+
+.page-enter {
+  animation: page-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.glitch-in {
+  animation: glitch-in 0.3s ease-out both;
+}
+
+.breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.scan-line-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.03;
+}
+
+.scan-line-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--accent);
+  animation: scan-line 3s linear infinite;
+}

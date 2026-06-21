@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Event Gadget - Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: #0a0f1e; color: #e0e0e0; }
+    nav { background: rgba(0,240,255,0.1); border-bottom: 1px solid rgba(0,240,255,0.2); padding: 12px 24px; }
+    nav a { color: #00f0ff; text-decoration: none; margin-right: 20px; }
+    nav a:hover { text-shadow: 0 0 8px rgba(0,240,255,0.5); }
+    .page { display: none; padding: 40px; max-width: 960px; margin: 0 auto; }
+    .page.active { display: block; }
+    h1 { margin-bottom: 20px; color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,0.3); }
+    .card {
+      background: rgba(10,15,30,0.7); backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,240,255,0.15); border-radius: 8px;
+      padding: 20px; margin-bottom: 16px;
+      box-shadow: 0 0 20px rgba(0,240,255,0.08);
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(0,240,255,0.1); }
+    th { color: #00f0ff; }
+    button {
+      background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.3);
+      color: #00f0ff; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px;
+    }
+    button:hover { background: rgba(0,240,255,0.25); box-shadow: 0 0 12px rgba(0,240,255,0.2); }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#/" data-track="nav-home">首页</a>
+    <a href="#/suppliers" data-track="nav-suppliers">供应商</a>
+    <a href="#/orders" data-track="nav-orders">订单</a>
+    <a href="#/products" data-track="nav-products">商品</a>
+  </nav>
+
+  <div id="page-home" class="page active">
+    <h1>Event Gadget Demo</h1>
+    <div class="card">
+      <p>这是一个自动埋点演示页面。点击导航或按钮，事件会自动上报到后端。</p>
+      <p style="margin-top:12px">打开浏览器控制台 (F12) 查看采集日志 (debug 模式)。</p>
+    </div>
+    <div class="card">
+      <h3>快速操作</h3>
+      <button data-track="btn-quick-order">快速下单</button>
+      <button data-track="btn-check-price">查看报价</button>
+      <button data-track="btn-contact">联系供应商</button>
+    </div>
+  </div>
+
+  <div id="page-suppliers" class="page">
+    <h1>供应商列表</h1>
+    <div class="card">
+      <table>
+        <tr><th>供应商</th><th>类型</th><th>状态</th><th>操作</th></tr>
+        <tr><td>华强电子</td><td>元器件</td><td>活跃</td><td><button data-track="btn-view-supplier">查看</button></td></tr>
+        <tr><td>鑫达钢铁</td><td>原材料</td><td>活跃</td><td><button data-track="btn-view-supplier">查看</button></td></tr>
+        <tr><td>光明化工</td><td>化工品</td><td>暂停</td><td><button data-track="btn-view-supplier">查看</button></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="page-orders" class="page">
+    <h1>订单管理</h1>
+    <div class="card">
+      <table>
+        <tr><th>订单号</th><th>供应商</th><th>金额</th><th>状态</th></tr>
+        <tr><td>PO-20260527-001</td><td>华强电子</td><td>¥128,000</td><td>待审批</td></tr>
+        <tr><td>PO-20260526-042</td><td>鑫达钢铁</td><td>¥356,000</td><td>已发货</td></tr>
+        <tr><td>PO-20260525-018</td><td>光明化工</td><td>¥45,000</td><td>已完成</td></tr>
+      </table>
+    </div>
+    <button data-track="btn-new-order">新建订单</button>
+  </div>
+
+  <div id="page-products" class="page">
+    <h1>商品库</h1>
+    <div class="card">
+      <table>
+        <tr><th>商品</th><th>分类</th><th>采购价</th><th>库存</th></tr>
+        <tr><td>电阻 0805</td><td>元器件</td><td>¥0.02</td><td>500,000</td></tr>
+        <tr><td>冷轧钢板 1.5mm</td><td>原材料</td><td>¥4,200/吨</td><td>80吨</td></tr>
+        <tr><td>环氧树脂 E-44</td><td>化工品</td><td>¥18,500/吨</td><td>12吨</td></tr>
+      </table>
+    </div>
+    <button data-track="btn-replenish">补货</button>
+    <button data-track="btn-price-history">价格历史</button>
+  </div>
+
+  <script>
+    // Hash-based SPA routing for demo
+    function navigate() {
+      const hash = location.hash || '#/';
+      const pages = document.querySelectorAll('.page');
+      pages.forEach(p => p.classList.remove('active'));
+
+      const mapping = {
+        '#/': 'page-home',
+        '#/suppliers': 'page-suppliers',
+        '#/orders': 'page-orders',
+        '#/products': 'page-products',
+      };
+
+      const pageId = mapping[hash] || 'page-home';
+      document.getElementById(pageId)?.classList.add('active');
+
+      // Update title for navigation chain
+      const titles = {
+        '#/': '首页 - Event Gadget',
+        '#/suppliers': '供应商列表 - Event Gadget',
+        '#/orders': '订单管理 - Event Gadget',
+        '#/products': '商品库 - Event Gadget',
+      };
+      document.title = titles[hash] || 'Event Gadget';
+    }
+
+    window.addEventListener('hashchange', navigate);
+    navigate();
+  </script>
+
+  <script src="/sg.js" data-app-id="demo" data-debug="true"></script>
+</body>
+</html>
