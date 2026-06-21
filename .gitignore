@@ -14,3 +14,8 @@ packages/server/data/*.db-wal
 # 顶层 marketing 落地页 + 早期 README zip — 保留本地,不进仓库
 /index.html
 /README.md.zip
+# 顶层 product-intro.html 是 docs/index.html 的本地副本,只发布 docs/ 那份
+/product-intro.html
+# 原始 PDF 素材
+/未命名.pdf
+*.pdf

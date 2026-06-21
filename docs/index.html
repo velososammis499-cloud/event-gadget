@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Gadget — 自动埋点 + 智能分析工具(产品介绍)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b1f;--bg2:#0d1333;--bg3:#131a42;
+  --card:rgba(255,255,255,0.04);--card-hover:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.06);--border-active:rgba(0,229,255,0.3);
+  --cyan:#00e5ff;--red:#ff3d71;--gold:#ffaa00;--green:#00e096;--purple:#b388ff;--blue:#448aff;
+  --text:#e8eaf6;--text2:rgba(255,255,255,0.55);--text3:rgba(255,255,255,0.3);
+  --font-mono:'JetBrains Mono','Fira Code','SF Mono',monospace;
+  --font:'-apple-system','PingFang SC','Microsoft YaHei',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,229,255,0.05),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(179,136,255,0.03),transparent 50%);pointer-events:none;z-index:0}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+/* ========== HERO ========== */
+.hero{position:relative;z-index:1;padding:88px 28px 56px;text-align:center;max-width:920px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--cyan);border:1px solid rgba(0,229,255,0.25);border-radius:20px;padding:4px 14px;margin-bottom:24px;background:rgba(0,229,255,0.04);letter-spacing:0.5px}
+.hero-badge .dot{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,255,0.4)}50%{opacity:.6;box-shadow:0 0 0 6px rgba(0,229,255,0)}}
+.hero h1{font-size:46px;font-weight:800;letter-spacing:-1px;margin-bottom:14px;background:linear-gradient(135deg,#fff 30%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.15}
+.hero h1 .sub{display:block;font-size:22px;font-weight:400;-webkit-text-fill-color:var(--text2);margin-top:8px;letter-spacing:1px}
+.hero .target{display:inline-block;margin-top:18px;font-size:13px;color:var(--gold);background:rgba(255,170,0,0.06);border:1px solid rgba(255,170,0,0.25);padding:6px 16px;border-radius:6px;letter-spacing:0.5px}
+
+/* ========== SECTION ========== */
+.section{position:relative;z-index:1;padding:64px 28px;max-width:1080px;margin:0 auto}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--cyan);margin-bottom:12px;font-weight:600}
+.section-title{font-size:30px;font-weight:700;margin-bottom:12px;line-height:1.3}
+.section-desc{font-size:15px;color:var(--text2);max-width:680px;line-height:1.7;margin-bottom:36px}
+.divider{position:relative;z-index:1;height:1px;max-width:1080px;margin:0 auto;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+
+/* ========== TABLE (现状) ========== */
+.status-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;margin-bottom:32px}
+.status-table th{background:linear-gradient(135deg,rgba(255,61,113,0.15),rgba(255,61,113,0.05));color:#fff;text-align:left;padding:14px 18px;font-weight:600;border:1px solid rgba(255,61,113,0.25);border-right:none}
+.status-table th:last-child{border-right:1px solid rgba(255,61,113,0.25)}
+.status-table td{padding:14px 18px;border:1px solid var(--border);border-top:none;background:var(--card);vertical-align:top}
+.status-table td.label-col{background:rgba(255,255,255,0.02);font-weight:600;color:var(--text2);width:120px;text-align:center}
+
+/* ========== 截图 grid(4 张并排) ========== */
+.scenes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 4px}
+.scene-thumb{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.scene-thumb .scene-title{font-size:11.5px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.scene-thumb .scene-placeholder{background:var(--bg2);aspect-ratio:3/4;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);border:1px dashed var(--border);font-family:var(--font-mono)}
+.scene-thumb .scene-img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top center;border-radius:5px;border:1px solid var(--border);background:var(--bg2)}
+.scene-thumb .scene-img:hover{border-color:var(--border-active)}
+
+/* ========== 痛点卡 ========== */
+.pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px}
+.pain-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:8px;padding:18px 22px;transition:all .3s}
+.pain-card:hover{background:var(--card-hover);border-color:rgba(255,255,255,0.08);border-left-color:var(--red)}
+.pain-card .pain-num{font-family:var(--font-mono);color:var(--red);font-weight:700;font-size:13px;margin-bottom:8px;letter-spacing:1px}
+.pain-card .pain-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:6px}
+.pain-card .pain-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* ========== 引文框(分析路径示例) ========== */
+.quote-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:18px 24px;margin:0 0 32px;font-size:13px;color:var(--text2)}
+.quote-box .quote-title{color:var(--gold);font-weight:600;margin-bottom:10px;font-size:13px}
+.quote-box ol{margin:0;padding-left:18px}
+.quote-box ol li{margin-bottom:6px;line-height:1.7}
+.quote-box ol li strong{color:#fff;font-weight:600}
+
+/* ========== 第二部分:工具能干什么 ========== */
+.value-banner{background:linear-gradient(135deg,rgba(0,229,255,0.06),rgba(179,136,255,0.04));border:1px solid rgba(0,229,255,0.18);border-radius:12px;padding:28px 32px;margin-bottom:32px}
+.value-banner .lead{font-size:17px;color:#fff;line-height:1.75;margin:0}
+.value-banner .lead em{color:var(--cyan);font-style:normal;font-weight:600}
+
+.cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px}
+.cap-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px 22px;position:relative;overflow:hidden;transition:all .3s}
+.cap-card:hover{background:var(--card-hover);transform:translateY(-2px)}
+.cap-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.cap-card.c1::before{background:linear-gradient(90deg,var(--cyan),transparent)}
+.cap-card.c2::before{background:linear-gradient(90deg,var(--green),transparent)}
+.cap-card.c3::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.cap-card.c4::before{background:linear-gradient(90deg,var(--gold),transparent)}
+.cap-card.c5::before{background:linear-gradient(90deg,var(--blue),transparent)}
+.cap-card.c6::before{background:linear-gradient(90deg,var(--red),transparent)}
+.cap-card .cap-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;font-size:18px;margin-bottom:14px;font-family:var(--font-mono);font-weight:700}
+.cap-card.c1 .cap-icon{background:rgba(0,229,255,0.1);color:var(--cyan)}
+.cap-card.c2 .cap-icon{background:rgba(0,224,150,0.1);color:var(--green)}
+.cap-card.c3 .cap-icon{background:rgba(179,136,255,0.1);color:var(--purple)}
+.cap-card.c4 .cap-icon{background:rgba(255,170,0,0.1);color:var(--gold)}
+.cap-card.c5 .cap-icon{background:rgba(68,138,255,0.1);color:var(--blue)}
+.cap-card.c6 .cap-icon{background:rgba(255,61,113,0.1);color:var(--red)}
+.cap-card .cap-title{font-size:15.5px;font-weight:600;color:#fff;margin-bottom:8px}
+.cap-card .cap-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* 老实交代区:做不到什么 */
+.honest-box{background:rgba(255,255,255,0.02);border:1px dashed var(--border);border-radius:10px;padding:20px 24px;margin-bottom:0}
+.honest-box .honest-title{font-size:12px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-weight:600}
+.honest-box ul{margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.85}
+.honest-box ul li{margin-bottom:4px}
+.honest-box ul li strong{color:var(--text);font-weight:600}
+
+/* ========== 第三部分:接入 ========== */
+.code-block{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px 26px;font-family:var(--font-mono);font-size:13.5px;line-height:1.8;color:var(--text2);overflow-x:auto;margin-bottom:24px}
+.code-block .cm{color:var(--text3)}
+.code-block .tag{color:var(--purple)}
+.code-block .attr{color:var(--gold)}
+.code-block .str{color:var(--green)}
+
+.event-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:36px}
+.event-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px 14px;text-align:center;transition:all .3s}
+.event-card:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-2px)}
+.event-card .etype{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase}
+.event-card .ename{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px}
+.event-card .edesc{font-size:11.5px;color:var(--text3);line-height:1.55}
+
+/* ========== 截图大图 ========== */
+.screenshot{margin:24px 0 32px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.3)}
+.screenshot-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2)}
+.screenshot-bar .dot{width:10px;height:10px;border-radius:50%}
+.screenshot-bar .dot.r{background:#ff5f57}
+.screenshot-bar .dot.y{background:#febc2e}
+.screenshot-bar .dot.g{background:#28c840}
+.screenshot-bar .url{margin-left:12px;font-size:11.5px;color:var(--text3);font-family:var(--font-mono)}
+.screenshot img{display:block;width:100%;height:auto}
+.screenshot-cap{font-size:12.5px;color:var(--text3);text-align:center;margin-top:-12px;margin-bottom:24px;font-style:italic}
+
+/* ========== 看板 4 页 ========== */
+.dash-pages{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-bottom:24px}
+.dash-page{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .3s}
+.dash-page:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-2px)}
+.dash-page img{display:block;width:100%;height:auto;border-bottom:1px solid var(--border)}
+.dash-page .dp-body{padding:20px 22px}
+.dash-page .dp-name{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
+.dash-page .dp-tag{display:inline-block;font-size:10.5px;color:var(--cyan);background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);padding:2px 8px;border-radius:10px;margin-bottom:12px;letter-spacing:0.5px}
+.dash-page .dp-q{font-size:13.5px;color:var(--text2);margin-bottom:14px;line-height:1.65}
+.dash-page .dp-q strong{color:#fff}
+.dash-page .dp-points{font-size:12.5px;color:var(--text3);line-height:1.7;list-style:none;padding:0}
+.dash-page .dp-points li{padding:3px 0;padding-left:14px;position:relative}
+.dash-page .dp-points li::before{content:'·';position:absolute;left:4px;top:3px;color:var(--cyan);font-weight:700}
+
+/* ========== 应用场景表 ========== */
+.use-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;margin-bottom:24px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.use-table th{background:rgba(0,229,255,0.05);color:var(--cyan);text-align:left;padding:14px 18px;font-weight:600;font-size:12.5px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.use-table td{padding:16px 18px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text2);line-height:1.7}
+.use-table tr:last-child td{border-bottom:none}
+.use-table td.scene-name{color:#fff;font-weight:600;width:32%}
+.use-table td.scene-name small{display:block;color:var(--text3);font-weight:400;font-size:11.5px;margin-top:4px}
+.use-table td .check{color:var(--green);font-weight:700;margin-right:4px}
+
+/* ========== 使用步骤 ========== */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;position:relative;margin-bottom:24px}
+.steps::before{content:'';position:absolute;top:36px;left:16.67%;right:16.67%;height:1px;background:linear-gradient(90deg,var(--cyan),var(--purple),var(--green))}
+.step{text-align:center;padding:0 18px;position:relative;z-index:1}
+.step-num{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;margin:0 auto 18px;font-family:var(--font-mono);background:var(--bg2);position:relative}
+.step.s1 .step-num{border:2px solid rgba(0,229,255,0.4);color:var(--cyan);box-shadow:0 0 30px rgba(0,229,255,0.15)}
+.step.s2 .step-num{border:2px solid rgba(179,136,255,0.4);color:var(--purple);box-shadow:0 0 30px rgba(179,136,255,0.15)}
+.step.s3 .step-num{border:2px solid rgba(0,224,150,0.4);color:var(--green);box-shadow:0 0 30px rgba(0,224,150,0.15)}
+.step h3{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px}
+.step p{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* ========== 状态表 ========== */
+.status-mini{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin-bottom:24px;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.status-mini th{background:rgba(255,255,255,0.03);color:var(--text2);text-align:left;padding:12px 18px;font-weight:600;font-size:12px;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.status-mini td{padding:14px 18px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text2);line-height:1.7}
+.status-mini tr:last-child td{border-bottom:none}
+.status-mini td.ok{color:var(--green);font-weight:600;font-size:13px}
+.status-mini td.todo{color:var(--gold);font-weight:600;font-size:13px}
+
+/* ========== Footer ========== */
+.footer{text-align:center;padding:60px 28px 80px;font-size:12px;color:var(--text3);max-width:1080px;margin:0 auto;position:relative;z-index:1;border-top:1px solid var(--border);margin-top:32px}
+
+/* ========== 强调标签 ========== */
+.kbd{display:inline-block;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 8px;font-family:var(--font-mono);font-size:12px;color:var(--cyan)}
+
+/* ========== 打印优化 ========== */
+@media print{
+  body{background:#fff;color:#000}
+  body::before{display:none}
+  .hero h1{-webkit-text-fill-color:#000;color:#000}
+  .hero h1 .sub{-webkit-text-fill-color:#444;color:#444}
+  .pain-card,.cap-card,.dash-page,.event-card,.scene-thumb,.code-block,.value-banner,.quote-box,.honest-box,.screenshot,.use-table,.status-mini,.status-table td{background:#fff;color:#000;border-color:#ccc}
+}
+
+@media(max-width:900px){
+  .scenes-grid{grid-template-columns:repeat(2,1fr)}
+  .pain-grid{grid-template-columns:1fr}
+  .cap-grid{grid-template-columns:1fr 1fr}
+  .event-grid{grid-template-columns:repeat(2,1fr)}
+  .dash-pages{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr;gap:32px}
+  .steps::before{display:none}
+  .hero h1{font-size:34px}
+  .hero h1 .sub{font-size:18px}
+  .section-title{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== HERO ========== -->
+<div class="hero">
+  <div class="hero-badge"><span class="dot"></span>PRODUCT INTRODUCTION</div>
+  <h1>Event Gadget<span class="sub">零侵入自动埋点 + 智能分析工具</span></h1>
+</div>
+
+
+<!-- ============== 第一部分 ============== -->
+<section class="section">
+  <div class="section-label">PART 01 · 起因</div>
+  <h2 class="section-title">为什么想做一个自动埋点工具?</h2>
+  <p class="section-desc">为支撑「双降」工作,业务侧已在子午线多个站点布设了埋点。但做核心分析时,
+  遇到了一系列<strong>系统性的取数障碍</strong> — 不是某个站点的小问题,而是埋点链路本身的局限。</p>
+
+  <!-- 「双降」现状表 -->
+  <table class="status-table">
+    <thead>
+      <tr><th colspan="2">「双降」当前埋点现状</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="label-col">业务目标</td>
+        <td><strong style="color:#fff">采购 SKU 降价、采购降本</strong></td>
+      </tr>
+      <tr>
+        <td class="label-col">埋点上报<br>位置</td>
+        <td>
+          子午线 · 京me 站点 / 子午线 · 一站式工作台 / 子午线 · 采购价管理 — 分散在 3 个站点,各自规范不同
+        </td>
+      </tr>
+      <tr>
+        <td class="label-col">业务场景</td>
+        <td>
+          <div class="scenes-grid">
+            <div class="scene-thumb">
+              <div class="scene-title">采销触达</div>
+              <img src="screenshots/business-1-caixiao.png" alt="采销触达" class="scene-img">
+            </div>
+            <div class="scene-thumb">
+              <div class="scene-title">采购价巡检结果查看</div>
+              <img src="screenshots/business-2-inspection.png" alt="采购价巡检结果查看" class="scene-img">
+            </div>
+            <div class="scene-thumb">
+              <div class="scene-title">多维比价 · 一键议价</div>
+              <img src="screenshots/business-3-compare.png" alt="多维比价 · 一键议价" class="scene-img">
+            </div>
+            <div class="scene-thumb">
+              <div class="scene-title">供应商触达</div>
+              <img src="screenshots/business-4-supplier.png" alt="供应商触达" class="scene-img">
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 18px;color:#fff">四个核心痛点</h3>
+
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-num">PAIN 01</div>
+      <div class="pain-title">埋点规范不统一</div>
+      <div class="pain-desc">各页面上报站点不同、字段约定不同,业务组件每接入一处都要单独埋点,人力成本高且容易遗漏。</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num">PAIN 02</div>
+      <div class="pain-title">数据颗粒度不够</div>
+      <div class="pain-desc">京me 站点不支持获取 ERP 明细,只能拿到页面访问总数 —「谁看了」「看了多久」「点了什么」全是黑盒。</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num">PAIN 03</div>
+      <div class="pain-title">想分析的路径采不到</div>
+      <div class="pain-desc">关键链路(推送 → 查看 → 调价 → 提交)在现有埋点上有缺失,要区分来源只能在本/上级页面额外打标识,改造成本高。</div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-num">PAIN 04</div>
+      <div class="pain-title">分析依赖人工取数</div>
+      <div class="pain-desc">一次分析 = 一次专项需求 + 等数 + 人工对齐口径,周期长、不可复用,业务决策跟不上节奏。</div>
+    </div>
+  </div>
+
+  <div class="quote-box">
+    <div class="quote-title">举例:当前埋点回答不了这些问题</div>
+    <ol>
+      <li><strong>京me 推送链路</strong>:每一条巡检结果推送给了谁(目前仅知 SKU 归属人)?推送成功了吗?成功后被查看了吗?查看后是否点击/跳转到采销工作台?</li>
+      <li><strong>SKU 查看</strong>:除了"是否查看页面"之外,在 SKU 详情上停留了多久?看了哪些字段?</li>
+      <li><strong>点击去调价</strong>:除了"是否点击按钮"之外,点完之后用户去了哪?是否真的进入调价流程?</li>
+      <li><strong>区分提交来源</strong>:点击提交时,如何分辨这单是巡检专员提交的,还是用户从其他入口进来提交的?</li>
+    </ol>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<!-- ============== 第二部分(实事求是) ============== -->
+<section class="section">
+  <div class="section-label">PART 02 · 工具价值</div>
+  <h2 class="section-title">这个工具适合谁用 · 能做什么</h2>
+  <p class="section-desc">主要面向用 <strong>Claude Code / Cursor / Lovable 等 AI 工具快速产出 HTML 原型</strong>来验证业务想法的<strong>个人开发者 / 小团队</strong>。
+  以前要验证一个新产品 idea 有没有人用、用户行为是不是符合预期,要么靠主观感受、要么得搭后端 + 接埋点 SDK + 配后台 — 几天才能搞定一次。
+  这个工具让你<strong>不在公司部署、不依赖团队埋点规范</strong>,加一行 script 就能在新做的 HTML 上拿到完整行为数据。</p>
+
+  <div class="value-banner">
+    <p class="lead">
+      一行 <span class="kbd">&lt;script&gt;</span> 接入 —
+      <em>不用搭后端、不用接公司埋点平台、不用写一行采集代码</em>。
+      用 AI 出的新 HTML 原型,5 分钟就能跑起来看真实用户怎么用、卡在哪 — 决定要不要继续投入。
+    </p>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:24px 0 18px;color:#fff">典型使用场景</h3>
+  <div class="cap-grid" style="grid-template-columns:repeat(2,1fr)">
+    <div class="cap-card c1">
+      <div class="cap-icon">💡</div>
+      <div class="cap-title">用 AI 出了个 idea 想验证</div>
+      <div class="cap-desc">Claude Code 帮你 5 分钟产出一个新功能的 HTML 原型,丢给 5-10 个真实用户试用,
+      用 Event Gadget 看他们真的点了什么、卡在哪 — 一周内决定值不值得做成正式产品。</div>
+    </div>
+    <div class="cap-card c2">
+      <div class="cap-icon">🎯</div>
+      <div class="cap-title">A / B 两版方案不知道选哪个</div>
+      <div class="cap-desc">两版 HTML 各接一行 script,设不同 app-id,各发一半人。看哪个版本完成率高、卡点少 —
+      用数据说话,不再凭审美吵架。</div>
+    </div>
+    <div class="cap-card c3">
+      <div class="cap-icon">🧪</div>
+      <div class="cap-title">小工具/活动页快速看效果</div>
+      <div class="cap-desc">报名页 / 调研页 / 活动落地页 — 这些一次性页面没必要走公司埋点流程,
+      但又想知道用户的真实行为(哪个表单字段被弃填、CTA 被点了多少次)。一行 script 就够。</div>
+    </div>
+    <div class="cap-card c4">
+      <div class="cap-icon">🔍</div>
+      <div class="cap-title">现有页面想补一些采不到的数据</div>
+      <div class="cap-desc">现有埋点只采到"是否点击了某按钮",但你想知道"点完之后用户去了哪""停留多久""鼠标在哪个区域徘徊"
+      — 不动现有埋点,叠加 Event Gadget 即可补全。</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:18px;font-weight:600;margin:32px 0 18px;color:#fff">核心能力</h3>
+  <div class="cap-grid">
+    <div class="cap-card c1">
+      <div class="cap-icon">SDK</div>
+      <div class="cap-title">一行接入,零侵入</div>
+      <div class="cap-desc">任意 HTML 页面加一行 <span class="kbd">&lt;script&gt;</span>,无需改业务代码、无需感知埋点字段、无需打包构建。</div>
+    </div>
+    <div class="cap-card c2">
+      <div class="cap-icon">AUTO</div>
+      <div class="cap-title">5 类事件自动采集</div>
+      <div class="cap-desc">页面浏览、点击、曝光、表单交互、停留时长 — 默认全采,无需配置,无需手工打点。</div>
+    </div>
+    <div class="cap-card c3">
+      <div class="cap-icon">TAB</div>
+      <div class="cap-title">同 URL 多 Tab 自动识别</div>
+      <div class="cap-desc">SPA 页面用 display:none 切 Tab,SDK 自动识别为不同视图,看板自然分开,无需手工区分。</div>
+    </div>
+    <div class="cap-card c4">
+      <div class="cap-icon">PATH</div>
+      <div class="cap-title">会话内路径自动还原</div>
+      <div class="cap-desc">同一 session 内"从哪来 → 经过哪 → 到哪去"自动串联;按"经过 X 页"圈选用户,无需打 source 标识。</div>
+    </div>
+    <div class="cap-card c5">
+      <div class="cap-icon">DASH</div>
+      <div class="cap-title">业务化分析看板</div>
+      <div class="cap-desc">4 个页面回答 4 个业务问题:用了什么 / 卡在哪了 / 怎么走的 / 谁在用,顶部一句话白话结论。</div>
+    </div>
+    <div class="cap-card c6">
+      <div class="cap-icon">SAFE</div>
+      <div class="cap-title">隐私自动过滤</div>
+      <div class="cap-desc">密码 / 信用卡 / 敏感字段事件 SDK 端直接丢弃,不进入上报链路,符合最低数据收集原则。</div>
+    </div>
+  </div>
+
+  <!-- 老实交代区 -->
+  <div class="honest-box">
+    <div class="honest-title">实事求是 · 工具暂时做不到什么</div>
+    <ul>
+      <li>不是公司级正式埋点系统的替代,<strong>定位是"个人/小团队验证 idea 的轻量工具"</strong>。涉及合规、跨部门口径对齐、长期沉淀的数据需求,还是要走公司埋点平台</li>
+      <li>采集的是<strong>浏览器内的真实用户行为</strong>,不采后端事件(订单流水、推送是否发送成功、ERP 明细等)</li>
+      <li>没有内置 SSO / 用户体系,看板默认开放访问 — 适合内部验证,生产分享前需自行加访问控制</li>
+      <li>数据存在 SQLite 单机文件,适合<strong>低至中等流量</strong>的原型验证(每天几千到几万事件无压力);要做正式产品级流量需迁移到 Postgres / 云数据库</li>
+    </ul>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+
+<!-- ============== 第三部分:工具介绍和使用方法 ============== -->
+<section class="section">
+  <div class="section-label">PART 03 · 工具介绍 & 使用方法</div>
+  <h2 class="section-title">工具长什么样 · 怎么用</h2>
+  <p class="section-desc">工具分两部分:<strong>浏览器端 SDK</strong>(负责采集)+ <strong>智能分析看板</strong>(负责呈现)。
+  以下按"接入 → 采集 → 看板分析 → 应用到双降场景"的顺序展示。</p>
+
+
+  <!-- ========== 3.1 接入方式 ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:24px 0 14px;color:#fff">3.1 接入方式</h3>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:16px">在你的新 HTML 原型(无论是 Claude Code 出的、还是手写的、还是 Lovable 之类工具生成的)末尾,加这一行:</p>
+
+  <div class="code-block">
+<span class="cm">&lt;!-- 接入 Event Gadget --&gt;</span>
+&lt;<span class="tag">script</span>
+&nbsp;&nbsp;<span class="attr">src</span>=<span class="str">"https://&lt;your-eg-host&gt;/sg.js"</span>
+&nbsp;&nbsp;<span class="attr">data-app-id</span>=<span class="str">"prototype-v1"</span>
+&nbsp;&nbsp;<span class="attr">data-user-id</span>=<span class="str">"&lt;用户标识-可选&gt;"</span>&gt;
+&lt;/<span class="tag">script</span>&gt;
+  </div>
+
+  <ul style="margin:0 0 36px 18px;font-size:13.5px;color:var(--text2);line-height:1.85">
+    <li><span class="kbd">data-app-id</span> — 给你这个原型/页面起个名字(如 <em style="color:var(--cyan);font-style:normal">prototype-v1</em>、<em style="color:var(--cyan);font-style:normal">landing-test-a</em>),看板按此分流。A/B 两版用不同 app-id 即可对比</li>
+    <li><span class="kbd">data-user-id</span> — 可选。如果你的原型有登录系统,传用户标识可关联到真实人;不传则按浏览器 cookie 区分匿名访客</li>
+    <li>无需 npm install、无需打包构建,纯 script 标签,即时生效</li>
+  </ul>
+
+
+  <!-- ========== 3.2 SDK 自动采集的 5 类事件 ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:24px 0 14px;color:#fff">3.2 SDK 自动采集的 5 类事件</h3>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:16px">接入后,SDK 在用户浏览器内自动采集以下事件并 5 秒内批量上报:</p>
+
+  <div class="event-grid">
+    <div class="event-card">
+      <div class="etype">PAGEVIEW</div>
+      <div class="ename">页面浏览</div>
+      <div class="edesc">页面打开 / SPA 路由切换 / Tab 视图切换</div>
+    </div>
+    <div class="event-card">
+      <div class="etype">CLICK</div>
+      <div class="ename">点击</div>
+      <div class="edesc">任意元素被点击 + 元素文本自动识别</div>
+    </div>
+    <div class="event-card">
+      <div class="etype">IMPRESSION</div>
+      <div class="ename">曝光</div>
+      <div class="edesc">元素进入视口 + 可见比例 + 可见时长</div>
+    </div>
+    <div class="event-card">
+      <div class="etype">FORM</div>
+      <div class="ename">表单交互</div>
+      <div class="edesc">字段聚焦/改变/提交(密码字段自动过滤)</div>
+    </div>
+    <div class="event-card">
+      <div class="etype">DWELL</div>
+      <div class="ename">真实停留</div>
+      <div class="edesc">累计活跃时长(扣除 tab 切走的时间)</div>
+    </div>
+  </div>
+
+
+  <!-- ========== 3.3 业务页(SDK 在哪里跑) ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:24px 0 14px;color:#fff">3.3 接入后的页面长什么样?</h3>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:16px">下图是接入 Event Gadget 的<strong>演示原型</strong>(用 AI 出的一个供应链管理后台 demo)
+  — 除了 HTML 末尾加一行 script 之外没有任何改动,SDK 在后台静默运行,自动识别左侧导航、顶部 Tab、卡片点击、表格交互。<strong>对用户完全无感知</strong>。</p>
+
+  <div class="screenshot">
+    <div class="screenshot-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">demo / 接入 Event Gadget 的 HTML 原型</span>
+    </div>
+    <img src="screenshots/demo-supply-chain.png" alt="演示原型页面">
+  </div>
+  <p class="screenshot-cap">↑ 演示原型:接入 SDK 后页面和接入前完全一致,埋点对用户/对页面性能都无感知</p>
+
+
+  <!-- ========== 3.4 智能分析看板 4 页 ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:32px 0 8px;color:#fff">3.4 智能分析看板 — 4 个业务问题各一页</h3>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:24px">看板不堆图表,而是直接回答 4 个业务问题。每页顶部一句话白话结论 + 4 个 KPI + 主图 + 详情可下钻。</p>
+
+  <!-- 用了什么 -->
+  <div class="screenshot">
+    <div class="screenshot-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">dashboard / 用了什么</span>
+    </div>
+    <img src="screenshots/dashboard-usage.png" alt="看板 - 用了什么">
+  </div>
+  <p class="screenshot-cap">↑「用了什么」— 顶部一句话告诉你"用户最常去 X(占 N%);Y 个功能是低使用功能",下方是按访问量排序的功能榜单</p>
+
+  <!-- 卡在哪了 -->
+  <div class="screenshot">
+    <div class="screenshot-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">dashboard / 卡在哪了</span>
+    </div>
+    <img src="screenshots/dashboard-blocked.png" alt="看板 - 卡在哪了">
+  </div>
+  <p class="screenshot-cap">↑「卡在哪了」— 自动识别死按钮(点了无后续)、高跳出页、表单失败,按"影响人数 × 比例"排序,定位最严重卡点</p>
+
+  <!-- 怎么走的 -->
+  <div class="screenshot">
+    <div class="screenshot-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">dashboard / 怎么走的</span>
+    </div>
+    <img src="screenshots/dashboard-paths.png" alt="看板 - 怎么走的">
+  </div>
+  <p class="screenshot-cap">↑「怎么走的」— Sankey 图自动呈现"从哪进来 → 中间经过 → 在哪退出",任何一段路径可下钻到具体会话回放</p>
+
+  <!-- 谁在用 -->
+  <div class="screenshot">
+    <div class="screenshot-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">dashboard / 谁在用</span>
+    </div>
+    <img src="screenshots/dashboard-audience.png" alt="看板 - 谁在用">
+  </div>
+  <p class="screenshot-cap">↑「谁在用」— 新人/回访/未知三段访客分布、回头率、高频访客 Top 10,可点任意访客看 ta 的完整使用链路</p>
+
+
+  <!-- 4 页能力速查卡 -->
+  <h4 style="font-size:14px;font-weight:600;margin:36px 0 16px;color:var(--text2);letter-spacing:1px;text-transform:uppercase">4 个分析页面能力速查</h4>
+  <div class="dash-pages" style="grid-template-columns:repeat(2,1fr);gap:14px">
+    <div class="dash-page" style="background:var(--card)">
+      <div class="dp-body">
+        <div class="dp-name">📊 用了什么</div>
+        <div class="dp-tag">功能使用度</div>
+        <div class="dp-q"><strong>回答:</strong>本期哪些功能被用得最多?哪些功能/Tab 几乎没人用?</div>
+        <ul class="dp-points">
+          <li>页面/视图排行 + 上周期对比</li>
+          <li>高 CTR / 低点击率元素 Top 5</li>
+          <li>「可能漏采的视图」自动提示</li>
+          <li>data-track 中文别名管理</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="dash-page" style="background:var(--card)">
+      <div class="dp-body">
+        <div class="dp-name">⚠️ 卡在哪了</div>
+        <div class="dp-tag">体验诊断</div>
+        <div class="dp-q"><strong>回答:</strong>用户在哪一步流失了?哪个按钮点了没反应?哪个表单提交失败?</div>
+        <ul class="dp-points">
+          <li>系统推荐漏斗 + 流失用户数</li>
+          <li>死按钮 Top(点了无后续动作)</li>
+          <li>高跳出页(进了就走)</li>
+          <li>下钻到具体会话查证据</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="dash-page" style="background:var(--card)">
+      <div class="dp-body">
+        <div class="dp-name">🔀 怎么走的</div>
+        <div class="dp-tag">使用路径</div>
+        <div class="dp-q"><strong>回答:</strong>用户的典型使用路径是什么?最常见入口/出口在哪?</div>
+        <ul class="dp-points">
+          <li>跳转 Sankey 图(中文视图名)</li>
+          <li>典型会话时间线(完整操作回放)</li>
+          <li>最常见入口 / 出口</li>
+          <li>平均会话时长(真实活跃时间)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="dash-page" style="background:var(--card)">
+      <div class="dp-body">
+        <div class="dp-name">👥 谁在用</div>
+        <div class="dp-tag">人群画像</div>
+        <div class="dp-q"><strong>回答:</strong>新人 vs 老用户行为差异?哪些是高频用户?</div>
+        <ul class="dp-points">
+          <li>新人/回访/未知 三段饼图</li>
+          <li>独立访客 / 新人占比 / 回头率</li>
+          <li>高频访客 Top 10(全量聚合)</li>
+          <li>点访客看完整使用链路</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========== 3.5 用到具体场景 ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:48px 0 14px;color:#fff">3.5 用到具体场景</h3>
+  <p style="font-size:14px;color:var(--text2);margin-bottom:24px">几种典型的 idea 验证 / 原型评估场景,接入后能从看板上直接看到答案:</p>
+
+  <table class="use-table">
+    <thead>
+      <tr>
+        <th style="width:32%">想知道什么</th>
+        <th>这个工具怎么回答你</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="scene-name">
+          这个新功能真的有人用吗?
+          <small>原型放出去后,核心功能被使用的比例</small>
+        </td>
+        <td>
+          <span class="check">✓</span> 看板「用了什么」直接给出页面/视图使用排行<br>
+          <span class="check">✓</span> 顶部一句话告诉你"用户最常去 X,占 N%;Y 个功能几乎没人用"<br>
+          <span class="check">✓</span> 配合 CTR 排行看具体按钮的吸引力
+        </td>
+      </tr>
+      <tr>
+        <td class="scene-name">
+          用户在哪一步流失?
+          <small>注册/下单/调研填写过程中哪一步走不下去</small>
+        </td>
+        <td>
+          <span class="check">✓</span> 看板「卡在哪了」自动识别死按钮(点了无后续动作)<br>
+          <span class="check">✓</span> 自动识别高跳出页(进了就走)、表单失败<br>
+          <span class="check">✓</span> 按"影响人数 × 比例"排序,最严重卡点排在最前
+        </td>
+      </tr>
+      <tr>
+        <td class="scene-name">
+          用户的真实使用路径?
+          <small>跟你预想的流程一样吗,有没有意外的"野生路径"</small>
+        </td>
+        <td>
+          <span class="check">✓</span> 看板「怎么走的」Sankey 图直接呈现"从哪进 → 中间经过 → 在哪离开"<br>
+          <span class="check">✓</span> 任意一段路径可下钻到具体会话回放<br>
+          <span class="check">✓</span> 最常见入口/出口一目了然
+        </td>
+      </tr>
+      <tr>
+        <td class="scene-name">
+          A 版 vs B 版哪个好?
+          <small>两个方案不知道选哪个,数据说话</small>
+        </td>
+        <td>
+          <span class="check">✓</span> 两版各设不同 <span class="kbd">data-app-id</span>,各发一半人<br>
+          <span class="check">✓</span> 看板顶部 App 切换器秒切两边数据对比<br>
+          <span class="check">✓</span> 完成率、卡点数、停留时长 — 一眼比出来
+        </td>
+      </tr>
+      <tr>
+        <td class="scene-name">
+          新人 vs 老用户行为差异?
+          <small>第一次来的人 vs 回访的人怎么用</small>
+        </td>
+        <td>
+          <span class="check">✓</span> 看板「谁在用」自动区分新人 / 回访 / 未知<br>
+          <span class="check">✓</span> 高频访客 Top 10,点进去看 ta 的完整使用链路<br>
+          <span class="check">✗</span> 跨设备识别(同一人在手机+电脑算两个人) — 工具不采,需自行透传 user-id
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  <!-- ========== 3.6 使用步骤(3 步) ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:48px 0 24px;color:#fff">3.6 使用步骤</h3>
+
+  <div class="steps">
+    <div class="step s1">
+      <div class="step-num">01</div>
+      <h3>HTML 加一行 script</h3>
+      <p>在你的 HTML 原型(AI 生成的、手写的、Lovable 等工具生成的)末尾插入 SDK,起个 app-id 即可,无需改其它代码</p>
+    </div>
+    <div class="step s2">
+      <div class="step-num">02</div>
+      <h3>发给真实用户试用</h3>
+      <p>把页面链接发给 5-10 个目标用户(同事 / 测试用户 / 真实客户),让 ta 们按日常方式操作,SDK 后台静默采集</p>
+    </div>
+    <div class="step s3">
+      <div class="step-num">03</div>
+      <h3>看板自助查看结论</h3>
+      <p>打开看板 → 选你刚才设的 app-id + 时间窗 → 5 秒内即可看到真实用户行为数据,决定要不要继续投入</p>
+    </div>
+  </div>
+
+
+  <!-- ========== 3.7 当前状态 ========== -->
+  <h3 style="font-size:20px;font-weight:600;margin:48px 0 16px;color:#fff">3.7 当前状态 & 适用范围</h3>
+
+  <table class="status-mini">
+    <thead>
+      <tr>
+        <th style="width:30%">能力</th>
+        <th style="width:18%">状态</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong style="color:#fff">SDK + 后端 + 看板</strong></td>
+        <td class="ok">✓ 已就绪</td>
+        <td>4 个分析页面、5 类自动事件、隐私过滤、视图自动识别 — 全部可用,Demo 已跑通</td>
+      </tr>
+      <tr>
+        <td><strong style="color:#fff">本地 / 个人服务器部署</strong></td>
+        <td class="ok">✓ 支持</td>
+        <td>单服务部署(server 同时托管 SDK + 看板 + Demo),一条 npm start 即可运行,无外部依赖</td>
+      </tr>
+      <tr>
+        <td><strong style="color:#fff">Idea 验证 / 原型评估</strong></td>
+        <td class="ok">✓ 适合</td>
+        <td>定位场景。每天几千到几万事件无压力,SQLite 单机即可承载</td>
+      </tr>
+      <tr>
+        <td><strong style="color:#fff">访问控制 / SSO</strong></td>
+        <td class="todo">⚠ 需自加</td>
+        <td>看板默认开放访问,只适合内部使用;对外分享前需自行加访问控制(Nginx Basic Auth / 等)</td>
+      </tr>
+      <tr>
+        <td><strong style="color:#fff">大流量 / 生产产品</strong></td>
+        <td class="todo">需迁移</td>
+        <td>每天百万+事件量需迁到 Postgres / 云数据库;不是工具当前的目标场景</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<!-- ========== Footer ========== -->
+<footer class="footer">
+  Event Gadget · 自动埋点 + 智能分析工具 · 内部产品介绍
+</footer>
+
+</body>
+</html>
